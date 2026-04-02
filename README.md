@@ -5,7 +5,7 @@ tired of staring at walls of plain `console.log`? termpainter gives your termina
 npm install termpainter
 ```
 
-![demo](./assets/demo.png)
+<img src="https://raw.githubusercontent.com/abd105/termpainter/main/assets/demo.png" width="450" alt="termpainter demo" />
 
 ---
 
