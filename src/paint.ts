@@ -4,6 +4,7 @@ import {
   BG_BLACK, BG_RED, BG_GREEN, BG_YELLOW, BG_BLUE, BG_MAGENTA, BG_CYAN, BG_WHITE, BG_GRAY,
 } from './codes.js';
 import { isColorEnabled } from './env.js';
+import { isSilent } from './silent.js';
 
 export type Color = 'black' | 'red' | 'green' | 'yellow' | 'blue' | 'magenta' | 'cyan' | 'white' | 'gray';
 
@@ -41,6 +42,7 @@ const bgMap: Record<Color, string> = {
 };
 
 export function paint(text: string, options: PaintOptions = {}): string {
+  if (isSilent()) return '';
   if (!isColorEnabled()) return text;
   let prefix = '';
   if (options.bold) prefix += BOLD;

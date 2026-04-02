@@ -1,8 +1,10 @@
 import { type Color, fgMap, strip } from './paint.js';
 import { RESET } from './codes.js';
 import { isColorEnabled } from './env.js';
+import { isSilent } from './silent.js';
 
 export function box(text: string, color: Color = 'white'): string {
+  if (isSilent()) return '';
   const lines = text.split('\n');
   const width = Math.max(...lines.map((l) => strip(l).length));
 

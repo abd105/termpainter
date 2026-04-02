@@ -11,7 +11,7 @@ npm install termpainter
 
 ## usage
 ```ts
-import { style, badge, box, paint, spin, strip, setIcons } from 'termpainter'
+import { style, badge, box, paint, spin, strip, setIcons, setSilent, isInteractive } from 'termpainter'
 ```
 
 ### styles
@@ -110,9 +110,28 @@ paint('highlighted', { color: 'white', bg: 'blue' })
 paint('soft note', { color: 'gray', italic: true, dim: true })
 ```
 
+### group
+
+groups a list of already-styled lines under a labeled header.
+```ts
+style.group('Deploy', [
+  style.info('Building'),
+  style.success('Done'),
+])
+// ▶ Deploy
+//   ℹ Building
+//   ✔ Done
+
+style.group('Checks', [
+  style.success('Lint passed'),
+  style.warn('Coverage at 74%'),
+  style.error('Tests failed'),
+])
+```
+
 ### spinner
 
-animated terminal spinner. returns a handle with `succeed` and `fail` to stop it. no external dependencies.
+animated terminal spinner. returns a handle with `succeed` and `fail` to stop it. no external dependencies. automatically degrades to a single printed line when not running in a TTY (CI, piped output).
 ```ts
 const s = spin('Deploying...')
 
@@ -133,6 +152,35 @@ const raw = strip(style.success('Build complete'))
 // => '✔ Build complete'
 
 fs.appendFileSync('app.log', strip(style.info('Server started')) + '\n')
+```
+
+### silent mode
+
+suppress all output globally. every function returns an empty string and produces no side effects. useful for tests, CI, and benchmarks.
+```ts
+import { setSilent } from 'termpainter'
+
+setSilent(true)
+
+style.success('done')   // ''
+badge('v1.0.0', 'cyan') // ''
+box('hello')            // ''
+
+setSilent(false)        // restore normal output
+```
+
+### isInteractive
+
+returns `true` if stdout is an interactive TTY. useful for conditionally using spinners or dynamic layouts.
+```ts
+import { isInteractive } from 'termpainter'
+
+if (isInteractive()) {
+  const s = spin('Loading...')
+  // ...
+} else {
+  console.log(style.muted('Loading...'))
+}
 ```
 
 ### custom icons
@@ -179,9 +227,12 @@ isColorEnabled() // true in an interactive terminal, false everywhere else
 | `style.timestamp(msg, color?)` | prepends [HH:MM:SS], default gray |
 | `badge(text, color?)` | [text] in chosen color, default white |
 | `box(text, color?)` | unicode border box, multiline and ANSI-aware |
+| `style.group(label, lines[])` | ▶ label in cyan, lines indented 2 spaces |
 | `spin(msg)` | animated spinner, returns `{ succeed(msg?), fail(msg?) }` |
 | `strip(str)` | removes all ANSI escape codes from a string |
 | `setIcons(icons)` | override icons for error, success, warn, info, debug |
+| `setSilent(mode)` | suppress all output globally when `true` |
+| `isInteractive()` | returns `true` if stdout is a TTY |
 | `paint(text, options?)` | raw ANSI composer |
 | `isColorEnabled()` | returns true if colors are active |
 

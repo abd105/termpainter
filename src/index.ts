@@ -7,5 +7,6 @@ export { spin } from './spinner.js';
 export type { SpinnerHandle } from './spinner.js';
 export { setIcons } from './icons.js';
 export type { Icons } from './icons.js';
-export { isColorEnabled } from './env.js';
+export { setSilent } from './silent.js';
+export { isColorEnabled, isInteractive } from './env.js';
 export * from './codes.js';
