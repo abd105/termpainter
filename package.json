@@ -1,6 +1,6 @@
 {
   "name": "termpainter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Zero-dependency terminal styling toolkit for Node.js and Bun",
   "type": "module",
   "main": "./dist/cjs/index.js",
