@@ -1,0 +1,30 @@
+// Reset
+export const RESET = '\x1b[0m';
+
+// Text styles
+export const BOLD = '\x1b[1m';
+export const DIM = '\x1b[2m';
+export const ITALIC = '\x1b[3m';
+export const UNDERLINE = '\x1b[4m';
+
+// Foreground colors
+export const BLACK = '\x1b[30m';
+export const RED = '\x1b[31m';
+export const GREEN = '\x1b[32m';
+export const YELLOW = '\x1b[33m';
+export const BLUE = '\x1b[34m';
+export const MAGENTA = '\x1b[35m';
+export const CYAN = '\x1b[36m';
+export const WHITE = '\x1b[37m';
+export const GRAY = '\x1b[90m';
+
+// Background colors
+export const BG_BLACK = '\x1b[40m';
+export const BG_RED = '\x1b[41m';
+export const BG_GREEN = '\x1b[42m';
+export const BG_YELLOW = '\x1b[43m';
+export const BG_BLUE = '\x1b[44m';
+export const BG_MAGENTA = '\x1b[45m';
+export const BG_CYAN = '\x1b[46m';
+export const BG_WHITE = '\x1b[47m';
+export const BG_GRAY = '\x1b[100m';
