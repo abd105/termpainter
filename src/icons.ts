@@ -23,3 +23,7 @@ export function setIcons(icons: Partial<Icons>): void {
 export function getIcons(): Icons {
   return current;
 }
+
+export function resetIcons(): void {
+  current = { ...defaults };
+}

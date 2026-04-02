@@ -1,3 +1,5 @@
+import { isTestMode } from './testmode.js';
+
 /**
  * Returns true if ANSI color codes should be emitted.
  * Colors are disabled when any of the following are true:
@@ -6,6 +8,7 @@
  *   - process.stdout.isTTY is false/undefined (output is being piped)
  */
 export function isInteractive(): boolean {
+  if (isTestMode()) return false;
   return process.stdout.isTTY === true;
 }
 

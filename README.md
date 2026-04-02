@@ -11,7 +11,8 @@ npm install termpainter
 
 ## usage
 ```ts
-import { style, badge, box, paint, spin, strip, setIcons, setSilent, isInteractive } from 'termpainter'
+import { style, badge, box, paint, spin, strip, columns, truncate,
+         setIcons, setSilent, setTheme, resetTheme, setTestMode, isInteractive } from 'termpainter'
 ```
 
 ### styles
@@ -51,6 +52,20 @@ DEBUG=1 node app.js   # shows debug output
 node app.js           # debug lines are invisible
 ```
 
+### list
+
+bulleted list. each item can be a plain string or a pre-styled string.
+```ts
+style.list(['Build started', 'Running tests', 'Deploying'])
+// • Build started
+// • Running tests
+// • Deploying
+
+style.list([style.success('Lint passed'), style.warn('Coverage at 74%')])
+
+style.list(items, { bullet: '-', color: 'gray', indent: 2 })
+```
+
 ### badges
 
 inline labels. good for status, versions, environments.
@@ -64,11 +79,18 @@ badge('offline', 'red')
 
 ### boxes
 
-draws a clean unicode border around anything. multiline works fine. fully composable — pass styled strings directly.
+draws a clean unicode border around anything. multiline works fine. fully composable — pass styled strings directly. supports an optional title in the top border.
 ```ts
 box('Deploy complete\n3 services restarted\nAll checks passed', 'green')
 box('Critical error\nProcess exited with code 1', 'red')
 box(style.success('done'))   // styled content inside a box
+
+// with title
+box('Deploy complete\n3 services restarted', { color: 'green', title: 'Deploy' })
+// ╭ Deploy ──────────────────╮
+// │ Deploy complete          │
+// │ 3 services restarted     │
+// ╰──────────────────────────╯
 ```
 
 ### divider
@@ -121,27 +143,43 @@ style.group('Deploy', [
 // ▶ Deploy
 //   ℹ Building
 //   ✔ Done
+```
 
-style.group('Checks', [
-  style.success('Lint passed'),
-  style.warn('Coverage at 74%'),
-  style.error('Tests failed'),
-])
+### columns
+
+renders two strings side by side, ANSI-aware. falls back to two lines in non-interactive environments.
+```ts
+columns('Left content', 'Right content')
+columns(style.success('Build passed'), style.info('Tests: 22/22'))
+columns(badge('production', 'green'), badge('v2.0.0', 'cyan'))
+
+columns(left, right, { width: 100, gap: 6 })
+```
+
+### truncate
+
+truncates a string to a maximum visible length and appends `…`. uses `strip()` internally so ANSI codes don't count toward the length.
+```ts
+truncate('very long string that overflows', 20)
+// => 'very long string tha…'
+
+truncate(style.success('Build complete'), 10)
+// => truncated styled string with ANSI codes preserved
 ```
 
 ### spinner
 
-animated terminal spinner. returns a handle with `succeed` and `fail` to stop it. no external dependencies. automatically degrades to a single printed line when not running in a TTY (CI, piped output).
+animated terminal spinner. returns a handle with `succeed`, `fail`, and `update`. no external dependencies. automatically degrades to static line-by-line output when not in a TTY.
 ```ts
 const s = spin('Deploying...')
 
-// later, when done:
+s.update('Still working...')   // update message while spinning
+s.update('Almost done...')
+
 s.succeed('Deploy complete')   // stops spinner, shows style.success
 s.fail('Deploy failed')        // stops spinner, shows style.error
 
-// optional: reuse the original message
-s.succeed()
-s.fail()
+s.succeed()                    // reuse current message
 ```
 
 ### strip
@@ -154,12 +192,47 @@ const raw = strip(style.success('Build complete'))
 fs.appendFileSync('app.log', strip(style.info('Server started')) + '\n')
 ```
 
+### themes
+
+globally override colors and icons for all `style.*` methods. all keys are optional — unspecified entries fall back to defaults. call `resetTheme()` to restore factory defaults.
+```ts
+import { setTheme, resetTheme } from 'termpainter'
+
+setTheme({
+  success: { color: 'cyan',    icon: '✓' },
+  error:   { color: 'magenta', icon: '✕' },
+  warn:    { color: 'yellow' },
+  info:    { color: 'blue',    icon: '→' },
+  debug:   { color: 'gray',    dim: true },
+  muted:   { color: 'gray',    dim: true },
+  highlight: { color: 'green' },
+})
+
+style.success('done')    // ✓ done  (cyan, custom icon)
+style.error('oops')      // ✕ oops  (magenta)
+
+resetTheme()             // back to defaults
+```
+
+### test mode
+
+makes output deterministic for snapshot testing. `style.timestamp()` omits the time prefix, `spin()` renders statically without animation, `isInteractive()` returns `false`.
+```ts
+import { setTestMode } from 'termpainter'
+
+setTestMode(true)
+
+style.timestamp('Server started')   // => 'Server started'  (no [HH:MM:SS])
+const s = spin('Loading...')        // prints once, no animation
+s.succeed('Done')                   // prints style.success line
+
+setTestMode(false)                  // restore normal behavior
+```
+
 ### silent mode
 
 suppress all output globally. every function returns an empty string and produces no side effects. useful for tests, CI, and benchmarks.
 ```ts
-import { setSilent } from 'termpainter'
-
 setSilent(true)
 
 style.success('done')   // ''
@@ -169,33 +242,28 @@ box('hello')            // ''
 setSilent(false)        // restore normal output
 ```
 
-### isInteractive
-
-returns `true` if stdout is an interactive TTY. useful for conditionally using spinners or dynamic layouts.
-```ts
-import { isInteractive } from 'termpainter'
-
-if (isInteractive()) {
-  const s = spin('Loading...')
-  // ...
-} else {
-  console.log(style.muted('Loading...'))
-}
-```
-
 ### custom icons
 
 override the default icons for any or all style methods. unspecified keys fall back to defaults.
 ```ts
-import { setIcons } from 'termpainter'
-
 setIcons({ success: '✓', error: '✕' })
 
-style.success('done')   // ✓ done  (custom icon)
-style.warn('careful')   // ⚠ careful  (default icon unchanged)
+style.success('done')   // ✓ done
+style.warn('careful')   // ⚠ careful  (default unchanged)
 ```
 
 available keys: `success`, `error`, `warn`, `info`, `debug`
+
+### isInteractive
+
+returns `true` if stdout is an interactive TTY. always `false` in test mode.
+```ts
+if (isInteractive()) {
+  const s = spin('Loading...')
+} else {
+  console.log(style.muted('Loading...'))
+}
+```
 
 ---
 
@@ -203,8 +271,6 @@ available keys: `success`, `error`, `warn`, `info`, `debug`
 
 termpainter automatically strips all ANSI codes when `NO_COLOR` is set, when running in CI, or when output is piped. your logs won't be full of broken escape sequences.
 ```ts
-import { isColorEnabled } from 'termpainter'
-
 isColorEnabled() // true in an interactive terminal, false everywhere else
 ```
 
@@ -224,15 +290,21 @@ isColorEnabled() // true in an interactive terminal, false everywhere else
 | `style.highlight(msg)` | cyan |
 | `style.divider(color?)` | 40 char horizontal rule, default gray |
 | `style.table(data, color?)` | aligned key-value table, keys in cyan |
-| `style.timestamp(msg, color?)` | prepends [HH:MM:SS], default gray |
-| `badge(text, color?)` | [text] in chosen color, default white |
-| `box(text, color?)` | unicode border box, multiline and ANSI-aware |
+| `style.timestamp(msg, color?)` | prepends [HH:MM:SS], default gray; omitted in test mode |
 | `style.group(label, lines[])` | ▶ label in cyan, lines indented 2 spaces |
-| `spin(msg)` | animated spinner, returns `{ succeed(msg?), fail(msg?) }` |
-| `strip(str)` | removes all ANSI escape codes from a string |
+| `style.list(items, options?)` | bulleted list, options: bullet, color, indent |
+| `badge(text, color?)` | [text] in chosen color, default white |
+| `box(text, color\|options?)` | unicode border box; options: color, title |
+| `columns(left, right, options?)` | two columns side by side; options: width, gap |
+| `truncate(str, maxLength)` | truncate to maxLength visible chars, append … |
+| `spin(msg)` | animated spinner; returns `{ succeed, fail, update }` |
+| `strip(str)` | removes all ANSI escape codes |
+| `setTheme(theme)` | override colors and icons globally |
+| `resetTheme()` | restore default theme |
 | `setIcons(icons)` | override icons for error, success, warn, info, debug |
 | `setSilent(mode)` | suppress all output globally when `true` |
-| `isInteractive()` | returns `true` if stdout is a TTY |
+| `setTestMode(mode)` | deterministic output for snapshot testing |
+| `isInteractive()` | returns `true` if stdout is a TTY (false in test mode) |
 | `paint(text, options?)` | raw ANSI composer |
 | `isColorEnabled()` | returns true if colors are active |
 
