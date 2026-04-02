@@ -1,17 +1,39 @@
 import { paint, type Color } from './paint.js';
+import { getIcons } from './icons.js';
+
+type Meta = Record<string, unknown>;
+
+function formatMeta(data: Meta): string {
+  const keys = Object.keys(data);
+  if (keys.length === 0) return '';
+  const keyWidth = Math.max(...keys.map((k) => k.length));
+  return (
+    '\n' +
+    keys
+      .map((key) => {
+        const paddedKey = paint(key.padEnd(keyWidth), { color: 'cyan' });
+        return `  ${paddedKey}  ${data[key]}`;
+      })
+      .join('\n')
+  );
+}
 
 export const style = {
-  error(msg: string): string {
-    return paint(`✖ ${msg}`, { color: 'red' });
+  error(msg: string, meta?: Meta): string {
+    return paint(`${getIcons().error} ${msg}`, { color: 'red' }) + (meta ? formatMeta(meta) : '');
   },
-  success(msg: string): string {
-    return paint(`✔ ${msg}`, { color: 'green' });
+  success(msg: string, meta?: Meta): string {
+    return paint(`${getIcons().success} ${msg}`, { color: 'green' }) + (meta ? formatMeta(meta) : '');
   },
-  warn(msg: string): string {
-    return paint(`⚠ ${msg}`, { color: 'yellow' });
+  warn(msg: string, meta?: Meta): string {
+    return paint(`${getIcons().warn} ${msg}`, { color: 'yellow' }) + (meta ? formatMeta(meta) : '');
   },
-  info(msg: string): string {
-    return paint(`ℹ ${msg}`, { color: 'blue' });
+  info(msg: string, meta?: Meta): string {
+    return paint(`${getIcons().info} ${msg}`, { color: 'blue' }) + (meta ? formatMeta(meta) : '');
+  },
+  debug(msg: string, meta?: Meta): string {
+    if (!process.env['DEBUG']) return '';
+    return paint(`${getIcons().debug} ${msg}`, { color: 'gray', dim: true }) + (meta ? formatMeta(meta) : '');
   },
   muted(msg: string): string {
     return paint(msg, { color: 'gray', dim: true });

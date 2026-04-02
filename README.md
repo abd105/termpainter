@@ -11,7 +11,7 @@ npm install termpainter
 
 ## usage
 ```ts
-import { style, badge, box, paint } from 'termpainter'
+import { style, badge, box, paint, spin, strip, setIcons } from 'termpainter'
 ```
 
 ### styles
@@ -27,6 +27,30 @@ style.bold('Important message')        // bold white
 style.highlight('termpainter')         // cyan
 ```
 
+### structured log output
+
+any `style.*` method accepts an optional second argument — a plain object whose keys and values are printed below the message, indented and with keys in cyan.
+```ts
+style.info('User created', { id: 123, role: 'admin' })
+// ℹ User created
+//   id    123
+//   role  admin
+
+style.error('Request failed', { status: 503, path: '/api/data' })
+```
+
+### debug
+
+only outputs when `DEBUG` is set to any truthy value. silently returns an empty string otherwise. styled gray + dim with a 🔍 prefix.
+```ts
+style.debug('cache miss for key xyz')
+style.debug('query executed', { rows: 42, ms: 18 })
+```
+```sh
+DEBUG=1 node app.js   # shows debug output
+node app.js           # debug lines are invisible
+```
+
 ### badges
 
 inline labels. good for status, versions, environments.
@@ -40,10 +64,11 @@ badge('offline', 'red')
 
 ### boxes
 
-draws a clean unicode border around anything. multiline works fine.
+draws a clean unicode border around anything. multiline works fine. fully composable — pass styled strings directly.
 ```ts
 box('Deploy complete\n3 services restarted\nAll checks passed', 'green')
 box('Critical error\nProcess exited with code 1', 'red')
+box(style.success('done'))   // styled content inside a box
 ```
 
 ### divider
@@ -78,18 +103,57 @@ style.timestamp('Connection failed', 'red')  // timestamp in red
 
 ### paint
 
-low level, for when you need something the presets dont cover.
+low level, for when you need something the presets don't cover.
 ```ts
 paint('custom text', { color: 'magenta', bold: true })
 paint('highlighted', { color: 'white', bg: 'blue' })
 paint('soft note', { color: 'gray', italic: true, dim: true })
 ```
 
+### spinner
+
+animated terminal spinner. returns a handle with `succeed` and `fail` to stop it. no external dependencies.
+```ts
+const s = spin('Deploying...')
+
+// later, when done:
+s.succeed('Deploy complete')   // stops spinner, shows style.success
+s.fail('Deploy failed')        // stops spinner, shows style.error
+
+// optional: reuse the original message
+s.succeed()
+s.fail()
+```
+
+### strip
+
+removes all ANSI escape codes from a string. useful for writing styled output to log files or comparing strings in tests.
+```ts
+const raw = strip(style.success('Build complete'))
+// => '✔ Build complete'
+
+fs.appendFileSync('app.log', strip(style.info('Server started')) + '\n')
+```
+
+### custom icons
+
+override the default icons for any or all style methods. unspecified keys fall back to defaults.
+```ts
+import { setIcons } from 'termpainter'
+
+setIcons({ success: '✓', error: '✕' })
+
+style.success('done')   // ✓ done  (custom icon)
+style.warn('careful')   // ⚠ careful  (default icon unchanged)
+```
+
+available keys: `success`, `error`, `warn`, `info`, `debug`
+
 ---
 
 ## color support
 
-termpainter automatically strips all ANSI codes when `NO_COLOR` is set, when running in CI, or when output is piped. your logs wont be full of broken escape sequences.
+termpainter automatically strips all ANSI codes when `NO_COLOR` is set, when running in CI, or when output is piped. your logs won't be full of broken escape sequences.
 ```ts
 import { isColorEnabled } from 'termpainter'
 
@@ -102,10 +166,11 @@ isColorEnabled() // true in an interactive terminal, false everywhere else
 
 | function | description |
 |---|---|
-| `style.error(msg)` | red, prepends ✖ |
-| `style.success(msg)` | green, prepends ✔ |
-| `style.warn(msg)` | yellow, prepends ⚠ |
-| `style.info(msg)` | blue, prepends ℹ |
+| `style.error(msg, meta?)` | red, prepends ✖ |
+| `style.success(msg, meta?)` | green, prepends ✔ |
+| `style.warn(msg, meta?)` | yellow, prepends ⚠ |
+| `style.info(msg, meta?)` | blue, prepends ℹ |
+| `style.debug(msg, meta?)` | gray+dim, 🔍 prefix, only when `DEBUG` is set |
 | `style.muted(msg)` | gray, dimmed |
 | `style.bold(msg)` | bold white |
 | `style.highlight(msg)` | cyan |
@@ -113,7 +178,10 @@ isColorEnabled() // true in an interactive terminal, false everywhere else
 | `style.table(data, color?)` | aligned key-value table, keys in cyan |
 | `style.timestamp(msg, color?)` | prepends [HH:MM:SS], default gray |
 | `badge(text, color?)` | [text] in chosen color, default white |
-| `box(text, color?)` | unicode border box, multiline aware |
+| `box(text, color?)` | unicode border box, multiline and ANSI-aware |
+| `spin(msg)` | animated spinner, returns `{ succeed(msg?), fail(msg?) }` |
+| `strip(str)` | removes all ANSI escape codes from a string |
+| `setIcons(icons)` | override icons for error, success, warn, info, debug |
 | `paint(text, options?)` | raw ANSI composer |
 | `isColorEnabled()` | returns true if colors are active |
 
